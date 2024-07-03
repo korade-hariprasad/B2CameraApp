@@ -34,8 +34,10 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.ListResult;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 
@@ -44,6 +46,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -70,7 +73,8 @@ public class MainActivity extends AppCompatActivity {
                         byte[] data = baos.toByteArray();
                         StorageReference storageRef = FirebaseStorage.getInstance().getReference();
                         StorageReference imagesRef = storageRef.child("images");
-                        StorageReference spaceRef = storageRef.child("images/space.jpg");
+                        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+                        StorageReference spaceRef = storageRef.child("images/"+timeStamp+"jpg");
                         spaceRef.putFile(photoURI).addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
                             @Override
                             public void onComplete(@NonNull Task<UploadTask.TaskSnapshot> task) {
@@ -78,6 +82,19 @@ public class MainActivity extends AppCompatActivity {
                                 if(task.isSuccessful())
                                 {
                                     Log.d("mytag",task.getResult().getStorage().getPath());
+                                    StorageReference reference=imagesRef.child("/"+task.getResult().getStorage().getPath());
+                                    Log.d("mytag",task.getResult().getMetadata().getReference().getDownloadUrl().toString()
+                                    );
+                                    task.getResult().getMetadata().getReference().getDownloadUrl().addOnCompleteListener(new OnCompleteListener<Uri>() {
+                                        @Override
+                                        public void onComplete(@NonNull Task<Uri> task) {
+
+                                            Log.d("mytag",task.getResult().getPath());
+                                            Uri downloadUri = task.getResult();
+                                            Log.d("mytag", "Download URL: " + downloadUri.toString());
+
+                                        }
+                                    });
                                     Toast.makeText(MainActivity.this, "Image Uploaded", Toast.LENGTH_SHORT).show();
                                 }else{
                                     Toast.makeText(MainActivity.this, "Failed to upload image", Toast.LENGTH_SHORT).show();
@@ -123,7 +140,55 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        getAllDownloadUrls();
 
+
+    }
+    private void getAllDownloadUrls(){
+        StorageReference storageReference=FirebaseStorage.getInstance().getReference().child("images/");
+        storageReference.listAll()
+                .addOnSuccessListener(new OnSuccessListener<ListResult>() {
+                    @Override
+                    public void onSuccess(ListResult listResult) {
+                        List<String> downloadUrls = new ArrayList<>();
+
+                        for (StorageReference item : listResult.getItems()) {
+                            item.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                                @Override
+                                public void onSuccess(Uri uri) {
+                                    // Add URL to the list
+                                    downloadUrls.add(uri.toString());
+
+                                    // Log the URL or use it as needed
+                                    Log.d("mytag", "Download URL: " + uri.toString());
+
+                                    // If you want to use Glide to load images, you can do it here
+                                    // Example:
+                                    // Glide.with(MainActivity.this).load(uri).into(yourImageView);
+
+                                    // If all items are processed, you can handle the complete list here
+                                    if (downloadUrls.size() == listResult.getItems().size()) {
+                                        // All URLs are retrieved
+                                        //handleAllDownloadUrls(downloadUrls);
+                                    }
+                                }
+                            }).addOnFailureListener(new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    // Handle any errors
+                                    Toast.makeText(MainActivity.this, "Failed to get download URL for " + item.getName(), Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                        }
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        // Handle any errors
+                        Toast.makeText(MainActivity.this, "Failed to list items: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
     ActivityResultLauncher<PickVisualMediaRequest> gallery=registerForActivityResult(new ActivityResultContracts.PickVisualMedia(), new ActivityResultCallback<Uri>() {
