@@ -69,13 +69,13 @@ public class MainActivity extends AppCompatActivity {
                         capturedImageView.buildDrawingCache();
                         Bitmap captureBitmap=capturedImageView.getDrawingCache();
                         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                        captureBitmap.compress(Bitmap.CompressFormat.JPEG, 50, baos);
+                        captureBitmap.compress(Bitmap.CompressFormat.JPEG, 30, baos);
                         byte[] data = baos.toByteArray();
                         StorageReference storageRef = FirebaseStorage.getInstance().getReference();
                         StorageReference imagesRef = storageRef.child("images");
                         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
                         StorageReference spaceRef = storageRef.child("images/"+timeStamp+"jpg");
-                        spaceRef.putFile(photoURI).addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
+                        spaceRef.putBytes(data).addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
                             @Override
                             public void onComplete(@NonNull Task<UploadTask.TaskSnapshot> task) {
 
