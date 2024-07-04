@@ -131,32 +131,30 @@ public class MainActivity extends AppCompatActivity {
             }
     );
     private void launchCamera() {
-        File photoFile = null;
         try {
-            photoFile = createImageFile();
-        } catch (IOException ex) {
+            photoURI = createImageFileAndReturnUri();
+        } catch (Exception ex) {
             ex.printStackTrace();
         }
-        if (photoFile != null) {
-            photoURI = FileProvider.getUriForFile(this, getPackageName() + ".provider", photoFile);
-            takePictureLauncher.launch(photoURI);
-        }
+        takePictureLauncher.launch(photoURI);
     }
 
-    private File createImageFile() throws IOException {
+    private Uri createImageFileAndReturnUri() throws IOException {
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         String imageFileName = "JPEG_" + timeStamp + "_";
         File storageDir = new File(getApplicationContext().getExternalFilesDir(null), "images");
         if (!storageDir.exists()) {
             storageDir.mkdirs();
         }
-        File image = File.createTempFile(
+        File imageFile = File.createTempFile(
                 imageFileName,
                 ".jpg",
                 storageDir
         );
-        currentPhotoPath = image.getAbsolutePath();
+        currentPhotoPath = imageFile.getAbsolutePath();
         Log.d("mytag",currentPhotoPath);
-        return image;
+        Uri imageUri=FileProvider.getUriForFile(this, getPackageName() + ".provider", imageFile);
+        return imageUri;
     }
+
 }
